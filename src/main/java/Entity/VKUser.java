@@ -7,6 +7,12 @@ public class VKUser {
     private String car;
     private String lastMessage;
 
+    public VKUser(int id){
+        this.id = id;
+        this.car = null;
+        this.lastMessage = null;
+    }
+
     public VKUser(int id, String car, String message){
         this.id = id;
         this.car = car;

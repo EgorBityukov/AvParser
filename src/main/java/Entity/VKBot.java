@@ -14,7 +14,6 @@ import org.json.JSONObject;
 
 import java.sql.SQLException;
 import java.util.Random;
-import java.util.Set;
 
 import static DAO.UserDAO.users;
 
@@ -25,9 +24,10 @@ public class VKBot {
     private static TransportClient transportClient = HttpTransportClient.getInstance();
     private static VkApiClient vk = new VkApiClient(transportClient);
     private static GroupActor actor = new GroupActor(GROUP_ID, TOKEN);
+    private static Random random = new Random();
     private static UserDAO userDAO;
 
-    private Random random = new Random();
+
 
     public VKBot() throws ClientException, ApiException, SQLException {
         userDAO = new UserDAO();
@@ -47,55 +47,56 @@ public class VKBot {
 
             if (!getLongPollEventsResponse.getUpdates().isEmpty()) {
                 VKUser user = getMessage(server, key, ts);
+                if (users.get(users.indexOf(user)).getLastMessage().equals("wait")) {
 
-                switch (user.getLastMessage().charAt(0)) {
-                    case '1':
-                        try {
-                            if (userCheckSubscribe(user)) {
+                        userDAO.setCar(user, user.getLastMessage());
+                        userDAO.setLastMessage(user, user.getLastMessage());
 
-                                vk.messages().send(actor).userId(user.getId()).message("Вы уже подписаны").randomId(random.nextInt()).execute();
-                                vk.messages().send(actor).userId(user.getId()).message("Для отмены подписки отправьте '2'").randomId(random.nextInt()).execute();
+                    vk.messages().send(actor).userId(user.getId()).message("Подписка оформлена. Для отмены подписки отправьте 2").randomId(random.nextInt()).execute();
+                    vk.messages().send(actor).userId(user.getId()).stickerId(10402).randomId(random.nextInt()).execute();
+                } else {
+                    switch (user.getLastMessage().charAt(0)) {
+                        case '1':
+                            try {
+                                if (userCheckSubscribe(user)) {
+                                    vk.messages().send(actor).userId(user.getId()).message("Вы уже подписаны").randomId(random.nextInt()).execute();
+                                    vk.messages().send(actor).userId(user.getId()).message("Для отмены подписки отправьте '2'").randomId(random.nextInt()).execute();
 
-                            } else {
+                                } else {
 
-                                vk.messages().send(actor).userId(user.getId()).message("Введите марку авто для подписки:").randomId(random.nextInt()).execute();
-                                ts = getLongPollEventsResponse.getTs();
-
-                                if (!getLongPollEventsResponse.getUpdates().isEmpty()) {
-                                    userDAO.setCar(user.getId(), user.getLastMessage());
+                                    vk.messages().send(actor).userId(user.getId()).message("Введите марку авто для подписки:").randomId(random.nextInt()).execute();
+                                    ts = getLongPollEventsResponse.getTs();
+                                    userDAO.setLastMessage(user, "wait");
                                 }
-
-                                vk.messages().send(actor).userId(user.getId()).message("Подписка оформлена. Для отмены подписки отправьте 2").randomId(random.nextInt()).execute();
-                                vk.messages().send(actor).userId(user.getId()).stickerId(10402).randomId(random.nextInt()).execute();
+                            } catch (Exception ex) {
+                                vk.messages().send(actor).userId(user.getId()).message("Соре, проблемки, не подписалось").randomId(random.nextInt()).execute();
+                                vk.messages().send(actor).userId(user.getId()).stickerId(8471).randomId(random.nextInt()).execute();
+                                //vk.messages().send(actor).userId(user.getId()).message(ex.getMessage()).randomId(random.nextInt()).execute();
                             }
-                        } catch (Exception ex) {
-                            vk.messages().send(actor).userId(user.getId()).message("Соре, проблемки, не подписалось").randomId(random.nextInt()).execute();
-                            vk.messages().send(actor).userId(user.getId()).stickerId(8471).randomId(random.nextInt()).execute();
-                            //vk.messages().send(actor).userId(user.getId()).message(ex.getMessage()).randomId(random.nextInt()).execute();
-                        }
-                        break;
-                    case '2':
-                        try {
-                            userDAO.delete(user);
-                            vk.messages().send(actor).userId(user.getId()).message("Подписка отменена. Для подписки отправьте '1'").randomId(random.nextInt()).execute();
-                            vk.messages().send(actor).userId(user.getId()).stickerId(8490).randomId(random.nextInt()).execute();
-                        } catch (Exception ex) {
-                            vk.messages().send(actor).userId(user.getId()).message("Соре, проблемки").randomId(random.nextInt()).execute();
-                            vk.messages().send(actor).userId(user.getId()).stickerId(8471).randomId(random.nextInt()).execute();
-                            vk.messages().send(actor).userId(user.getId()).message(ex.getMessage()).randomId(random.nextInt()).execute();
-                        }
-                        break;
-                    default:
-                        vk.messages().send(actor).userId(user.getId()).message("Какую-то фигню написал").randomId(random.nextInt()).execute();
-                        vk.messages().send(actor).userId(user.getId()).stickerId(10448).randomId(random.nextInt()).execute();
-                        break;
+                            break;
+                        case '2':
+                            try {
+                                userDAO.delete(user);
+                                vk.messages().send(actor).userId(user.getId()).message("Подписка отменена. Для подписки отправьте '1'").randomId(random.nextInt()).execute();
+                                vk.messages().send(actor).userId(user.getId()).stickerId(8490).randomId(random.nextInt()).execute();
+                            } catch (Exception ex) {
+                                vk.messages().send(actor).userId(user.getId()).message("Соре, проблемки").randomId(random.nextInt()).execute();
+                                vk.messages().send(actor).userId(user.getId()).stickerId(8471).randomId(random.nextInt()).execute();
+                                vk.messages().send(actor).userId(user.getId()).message(ex.getMessage()).randomId(random.nextInt()).execute();
+                            }
+                            break;
+                        default:
+                            vk.messages().send(actor).userId(user.getId()).message("Какую-то фигню написал").randomId(random.nextInt()).execute();
+                            vk.messages().send(actor).userId(user.getId()).stickerId(10448).randomId(random.nextInt()).execute();
+                            break;
+                    }
                 }
             }
 
         }
     }
 
-    public static VKUser getMessage(String server, String key, int ts) throws ApiException, ClientException, SQLException {
+    public VKUser getMessage(String server, String key, int ts) throws ApiException, ClientException, SQLException {
         String message=null;
         int userId=0;
         VKUser user;
@@ -113,24 +114,28 @@ public class VKBot {
             message = jsonObject2.get("text").toString();
         }
         userId = Integer.parseInt(jsonObject2.get("from_id").toString());
-        System.out.println("********MESSAGE - " + message + "      USER ID - " + userId);
 
         user = new VKUser(userId, null, message);
 
         if(!users.contains(user)){
-            users.add(user);
-        } else{
-            userDAO.setLastMessage(user.getId(), message);
+            userDAO.add(user);
         }
 
         return user;
     }
 
-    public boolean userCheckSubscribe(VKUser user){
+    public boolean userCheckSubscribe(VKUser user) throws SQLException {
         boolean subscribe = false;
         if(users.contains(user)){
-            subscribe = true;
+            String car = users.get(users.indexOf(user)).getCar();
+            if(car!=null){
+                subscribe = true;
+            }
         }
         return subscribe;
+    }
+
+    public static void sendCarForUser(int id, String message) throws ClientException, ApiException {
+        vk.messages().send(actor).userId(id).message(message).randomId(random.nextInt()).execute();
     }
 }

@@ -37,7 +37,7 @@ public class UserDAO implements DAO<VKUser> {
         connection.close();
     }
 
-    public void setCar(int id, String car) throws SQLException {
+    public void setCar(VKUser user, String car) throws SQLException {
 
         properties.setProperty("user", "root");
         properties.setProperty("password", "4241");
@@ -49,8 +49,9 @@ public class UserDAO implements DAO<VKUser> {
         Statement statement = connection.createStatement();
 
         try {
-            query = "UPDATE user SET car='"+ car +"' WHERE id="+ id +"";
+            query = "UPDATE user SET car='"+ car +"' WHERE id="+ user.getId() +"";
             statement.executeUpdate(query);
+            users.get(users.indexOf(user)).setCar(car);
         }
         catch (SQLException ex) {
             System.out.print(ex.getMessage());
@@ -59,7 +60,7 @@ public class UserDAO implements DAO<VKUser> {
         connection.close();
     }
 
-    public void setLastMessage(int id, String message) throws SQLException {
+    public void setLastMessage(VKUser user, String message) throws SQLException {
 
         properties.setProperty("user", "root");
         properties.setProperty("password", "4241");
@@ -71,8 +72,10 @@ public class UserDAO implements DAO<VKUser> {
         Statement statement = connection.createStatement();
 
         try {
-            query = "UPDATE user SET last_message='"+ message +"' WHERE id="+ id +"";
+            query = "UPDATE user SET last_message='"+ message +"' WHERE id="+ user.getId() +"";
             statement.executeUpdate(query);
+            user.setLastMessage(message);
+            users.get(users.indexOf(user)).setLastMessage(message);
         }
         catch (SQLException ex) {
             System.out.print(ex.getMessage());
@@ -92,7 +95,7 @@ public class UserDAO implements DAO<VKUser> {
         Connection connection = DriverManager.getConnection(connectionURL, properties);
         Statement statement = connection.createStatement();
 
-        query = "DELETE FROM user WHERE id='" + user.getId() + "')";
+        query = "DELETE FROM user WHERE id='" + user.getId() + "'";
         statement.executeUpdate(query);
         users.remove(user);
         connection.close();
@@ -115,10 +118,12 @@ public class UserDAO implements DAO<VKUser> {
         VKUser user;
         int id;
         String car;
+        String message;
         while (rs.next()) {
             id = rs.getInt("id");
             car = rs.getString("car");
-            user = new VKUser(id, car, null);
+            message = rs.getString("car");
+            user = new VKUser(id, car, message);
             users.add(user);
         }
 
