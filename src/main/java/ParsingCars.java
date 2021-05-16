@@ -5,21 +5,21 @@ import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 import java.sql.*;
 
 public class ParsingCars {
-    private static final String URL = "https://cars.av.by/search?year_from=&year_to=&currency=USD&price_from=&price_to=&sort=date&order=desc";
-    String selector = "body > div.page > div.page-content > main > div > div:nth-child(3) > div.listing > div > div > div.listing-item-body > div > div.listing-item-main > div.listing-item-title > h4 > a";
+    private static final String URL = "https://cars.av.by/filter?sort=4";
+    String selector =  "a[class=\"listing-item__link\"]";
     String connectionURL = "jdbc:mysql://localhost/av";
     String query;
     String selectUsers;
     String brand;
     String[] subBrand;
     int userId;
-    Set<String> carsLink = new LinkedHashSet<String>();
+    Set<String> carsLink = new HashSet<String>();
 
     public void parsing() throws IOException, SQLException, ApiException, ClientException {
 
@@ -35,32 +35,33 @@ public class ParsingCars {
         Connection connection = DriverManager.getConnection(connectionURL, properties);
         Statement statement = connection.createStatement();
 
-        String modelInDB;
-
         Document doc = Jsoup.connect(URL).get();
         Elements element = doc.select(selector);
+        String carNumberStr, brandStr, modelStr, yearStr;
 
         for (String s : element.eachAttr("href")) {
+            s = "https://cars.av.by" + s;
             if (carsLink.add(s)) {
                 System.out.println("** New car: " + s);
-                Document mashina = Jsoup.connect(s).get();
-                Elements carNumber = mashina.select("body > div.page > div.page-content > main > div >" +
-                        " div.main-section > div > div.card-header > ul > li.card-about-item.card-about-item-strong > span");
+                Document car = Jsoup.connect(s).get();
+                Elements carNumber = car.select("li[class=\"card__stat-item\"]");
+                carNumberStr = carNumber.eachText().get(2).substring(2);
+                System.out.println(carNumberStr);
+                Elements model = car.select("ol[class=\"breadcrumb-list\"] > li");
+                brandStr = model.eachText().get(1);
+                modelStr = model.eachText().get(2);
+                Elements year = car.select("div[class=\"card__params\"]");
+                yearStr = year.eachText().get(0);
+                System.out.println(brandStr + " " + modelStr + " " + yearStr);
 
-                Elements model = mashina.select("body > div.page > div.page-content > main > div >" +
-                        " div.main-section > div > div.card-header > h1");
-
-                modelInDB = model.text().replaceAll("'", "");
-
-                    query = "INSERT INTO cars(car_number, URL, model) VALUES ('" + carNumber.text() + "', '" + s + "', '" + modelInDB + "')";
-                    statement.executeUpdate(query);
+                query = "INSERT INTO cars(car_number, URL, model) VALUES ('" + carNumberStr + "', '" + s + "', '" + modelStr + "')";
+                statement.executeUpdate(query);
 
                 brand = model.text();
                 subBrand = brand.split(" ");
                 System.out.println(brand + " " + subBrand[0]);
                 selectUsers = "SELECT id FROM user WHERE car LIKE '" + subBrand[0] + "%' OR car LIKE '%"+ subBrand[1] +"%'";     //subBrand[0]
                 ResultSet rs = statement.executeQuery(selectUsers);
-                System.out.println("***********" + subBrand[1]);
 
                 while (rs.next()) {
                     userId = rs.getInt("id");
