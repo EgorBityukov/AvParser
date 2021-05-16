@@ -6,20 +6,20 @@ import java.sql.*;
 import java.util.*;
 
 
-public class UserDAO implements DAO {
+public class UserDAO implements DAO<VKUser> {
 
     private static final String connectionURL = "jdbc:mysql://localhost/av";
     private String query;
-    public static List<VKUser> users = new ArrayList<VKUser>();
+    public static List<VKUser> users = new ArrayList<>();
 
     Properties properties = new Properties();
 
     public UserDAO() throws SQLException {
-        get();
+        getAll();
     }
 
     @Override
-    public void add(int id) throws SQLException {
+    public void add(VKUser user) throws SQLException {
 
         properties.setProperty("user", "root");
         properties.setProperty("password", "4241");
@@ -30,9 +30,10 @@ public class UserDAO implements DAO {
         Connection connection = DriverManager.getConnection(connectionURL, properties);
         Statement statement = connection.createStatement();
 
-        query = "INSERT INTO user(id) VALUES('" + id + "')";
+        query = "INSERT INTO user(id, car, last_message) VALUES('" + user.getId() + "', '" + user.getCar() + "', '" + user.getLastMessage() + "')";
         statement.executeUpdate(query);
 
+        users.add(user);
         connection.close();
     }
 
@@ -58,8 +59,8 @@ public class UserDAO implements DAO {
         connection.close();
     }
 
-    @Override
-    public void delete(int id) throws SQLException {
+    public void setLastMessage(int id, String message) throws SQLException {
+
         properties.setProperty("user", "root");
         properties.setProperty("password", "4241");
         properties.setProperty("useSSL", "false");
@@ -69,14 +70,36 @@ public class UserDAO implements DAO {
         Connection connection = DriverManager.getConnection(connectionURL, properties);
         Statement statement = connection.createStatement();
 
-        query = "DELETE FROM user WHERE id='" + id + "')";
-        statement.executeUpdate(query);
+        try {
+            query = "UPDATE user SET last_message='"+ message +"' WHERE id="+ id +"";
+            statement.executeUpdate(query);
+        }
+        catch (SQLException ex) {
+            System.out.print(ex.getMessage());
+        }
 
         connection.close();
     }
 
     @Override
-    public void get() throws SQLException {
+    public void delete(VKUser user) throws SQLException {
+        properties.setProperty("user", "root");
+        properties.setProperty("password", "4241");
+        properties.setProperty("useSSL", "false");
+        properties.setProperty("autoReconnect", "true");
+        properties.setProperty("serverTimezone","UTC");
+
+        Connection connection = DriverManager.getConnection(connectionURL, properties);
+        Statement statement = connection.createStatement();
+
+        query = "DELETE FROM user WHERE id='" + user.getId() + "')";
+        statement.executeUpdate(query);
+        users.remove(user);
+        connection.close();
+    }
+
+    @Override
+    public void getAll() throws SQLException {
         properties.setProperty("user", "root");
         properties.setProperty("password", "4241");
         properties.setProperty("useSSL", "false");

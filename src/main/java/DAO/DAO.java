@@ -2,9 +2,9 @@ package DAO;
 
 import java.sql.SQLException;
 
-public interface DAO {
+public interface DAO<T> {
 
-    public void add(int id) throws SQLException;
-    public void delete(int id) throws SQLException;
-    public void get() throws SQLException;
+    void add(T t) throws SQLException;
+    void delete(T t) throws SQLException;
+    void getAll() throws SQLException;
 }
